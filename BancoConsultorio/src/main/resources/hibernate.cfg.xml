@@ -7,9 +7,9 @@
 
         <!-- Conexão com o banco -->
         <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
-        <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/Faculdade</property>
+        <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/postgres</property>
         <property name="hibernate.connection.username">postgres</property>
-        <property name="hibernate.connection.password">12345678</property>
+        <property name="hibernate.connection.password">130803</property>
 
         <!-- Dialeto do banco -->
         <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
@@ -25,6 +25,8 @@
         <mapping class="org.example.entities.Produtos"/>
         <mapping class="org.example.entities.Usuario"/>
         <mapping class="org.example.entities.AuditoriaVenda"/>
+        <mapping class="org.example.entities.Setor"/>
+        <mapping class="org.example.entities.Funcionario"/>
 
     </session-factory>
 </hibernate-configuration>
