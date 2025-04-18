@@ -3,10 +3,14 @@ package org.example;
 import jakarta.persistence.EntityManager;
 import org.example.Service.CurvaABC;
 import org.example.Util.Factory;
+import org.example.entities.Funcionario;
+import org.example.entities.Setor;
 import org.example.entities.Produtos;
 import org.example.entities.Usuario;
 import org.example.repository.ProdutosRepository;
 import org.example.repository.UsuarioRepository;
+import org.example.repository.SetorRepository;
+import org.example.repository.FuncionarioRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,6 +23,8 @@ public class Main {
         EntityManager em = Factory.getEntityManager();
         ProdutosRepository produtosRepository = new ProdutosRepository(em);
         UsuarioRepository usuarioRepository = new UsuarioRepository(em);
+        SetorRepository setorRepository = new SetorRepository(em);
+        FuncionarioRepository funcionarioRepository = new FuncionarioRepository(em);
         Scanner scanner = new Scanner(System.in);
 
         // Inicia login de administrador
@@ -26,7 +32,7 @@ public class Main {
 
         // Se o login for bem-sucedido, carrega o menu principal
         if (adminLogado != null) {
-            menuPrincipal(scanner, produtosRepository, usuarioRepository, em, adminLogado);
+            menuPrincipal(scanner, produtosRepository, usuarioRepository, em, adminLogado, setorRepository, funcionarioRepository);
         } else {
             System.out.println("Login falhou! Finalizando o sistema.");
         }
@@ -61,7 +67,8 @@ public class Main {
     }
 
     private static void menuPrincipal(Scanner scanner, ProdutosRepository produtosRepository,
-                                      UsuarioRepository usuarioRepository, EntityManager em, Usuario adminLogado) {
+                                      UsuarioRepository usuarioRepository, EntityManager em, Usuario adminLogado,
+                                      SetorRepository setorRepository, FuncionarioRepository funcionarioRepository) {
         while (true) {
             System.out.println("\n*** MENU INTERATIVO ***");
             System.out.println("1 - Cadastrar Produto");
@@ -69,7 +76,8 @@ public class Main {
             System.out.println("3 - Listar Produtos");
             System.out.println("4 - Adicionar Estoque");
             System.out.println("5 - Mostrar Lucro do Dia");
-            System.out.println("6 - Sair");
+            System.out.println("6 - Colaboradores");
+            System.out.println("7 - Sair");
             System.out.print("Escolha uma opção: ");
             int opcao = scanner.nextInt();
 
@@ -87,17 +95,46 @@ public class Main {
                     adicionarEstoque(scanner, produtosRepository);
                     break;
                 case 5:
-                    System.out.println("m Lucro total do dia: R$ " + org.example.Service.LucroService.getLucroTotalDoDia());
+                    System.out.println("Lucro total do dia: R$ " + org.example.Service.LucroService.getLucroTotalDoDia());
                     break;
                 case 6:
+                    menuColaboradores(scanner, setorRepository, funcionarioRepository);
+                    break;
+                case 7:
                     System.out.println("Saindo...");
                     em.close();
                     return;
-
                 default:
                     System.out.println("Opção inválida! Tente novamente.");
             }
+        }
+    }
 
+    private static void menuColaboradores(Scanner scanner, SetorRepository setorRepository, FuncionarioRepository funcionarioRepository) {
+        while (true) {
+            System.out.println("\n*** MENU DE COLABORADORES ***");
+            System.out.println("1 - Cadastrar Setor");
+            System.out.println("2 - Cadastrar Funcionário");
+            System.out.println("3 - Listar Setores e Funcionários");
+            System.out.println("4 - Voltar ao Menu Principal");
+            System.out.print("Escolha uma opção: ");
+            int opcao = scanner.nextInt();
+
+            switch (opcao) {
+                case 1:
+                    cadastrarSetor(scanner, setorRepository);
+                    break;
+                case 2:
+                    cadastrarFuncionario(scanner, funcionarioRepository, setorRepository);
+                    break;
+                case 3:
+                    listarSetoresComFuncionarios(setorRepository);
+                    break;
+                case 4:
+                    return; // Volta ao menu principal
+                default:
+                    System.out.println("Opção inválida! Tente novamente.");
+            }
         }
     }
 
@@ -159,33 +196,78 @@ public class Main {
         }
     }
 
-    private static void cadastrarUsuario(Scanner scanner, UsuarioRepository usuarioRepository) {
+    private static void cadastrarSetor(Scanner scanner, SetorRepository setorRepository) {
         scanner.nextLine(); // Limpar buffer
+        System.out.print("Digite o nome do setor: ");
+        String nome = scanner.nextLine();
 
-        System.out.print("Digite o login do administrador: ");
-        String login = scanner.nextLine();
-        System.out.print("Digite a senha do administrador: ");
-        String senha = scanner.nextLine();
+        Setor setor = new Setor();
+        setor.setNome(nome);
 
-        Usuario admin = usuarioRepository.autenticar(login, senha);
-        if (admin == null || !admin.getLogin().equals("admin")) {
-            System.out.println("Acesso negado. Somente administradores podem cadastrar novos usuários.");
+        setorRepository.salvar(setor);
+        System.out.println("Setor cadastrado com sucesso!");
+    }
+
+    private static void cadastrarFuncionario(Scanner scanner, FuncionarioRepository funcionarioRepository, SetorRepository setorRepository) {
+        scanner.nextLine(); // Limpa buffer
+
+        System.out.print("Digite o nome do funcionário: ");
+        String nome = scanner.nextLine();
+
+        System.out.print("Digite o endereço do funcionário: ");
+        String endereco = scanner.nextLine();
+
+        System.out.print("Digite o documento do funcionário: ");
+        String documento = scanner.nextLine();
+
+        // Lista setores disponíveis antes da escolha
+        List<Setor> setores = setorRepository.buscarTodos();
+        if (setores.isEmpty()) {
+            System.out.println("Nenhum setor cadastrado. Cadastre um setor antes de adicionar funcionários.");
             return;
         }
 
-        System.out.print("Digite o login do novo usuário: ");
-        String novoLogin = scanner.nextLine();
-        System.out.print("Digite a senha do novo usuário: ");
-        String novaSenha = scanner.nextLine();
-        System.out.print("Digite a descrição do novo usuário: ");
-        String descricao = scanner.nextLine();
+        System.out.println("\nSetores disponíveis:");
+        for (Setor setor : setores) {
+            System.out.println("ID: " + setor.getId() + " - Nome: " + setor.getNome());
+        }
 
-        Usuario novoUsuario = new Usuario();
-        novoUsuario.setLogin(novoLogin);
-        novoUsuario.setSenha(novaSenha);
-        novoUsuario.setDescricao(descricao);
+        System.out.print("Informe o setor do funcionário (ID): ");
+        long setorId = scanner.nextLong();
+        Setor setor = setorRepository.buscarPorId(setorId);
 
-        usuarioRepository.salvar(novoUsuario);
-        System.out.println("Usuário cadastrado com sucesso!");
+        if (setor == null) {
+            System.out.println("Setor não encontrado!");
+            return;
+        }
+
+        Funcionario funcionario = new Funcionario();
+        funcionario.setNome(nome);
+        funcionario.setEndereco(endereco);
+        funcionario.setDocumento(documento);
+        funcionario.setSetor(setor);
+        funcionario.setTotalVendas(0.0);
+
+        funcionarioRepository.salvar(funcionario);
+        System.out.println("Funcionário cadastrado com sucesso!");
+    }
+
+
+    private static void listarSetoresComFuncionarios(SetorRepository setorRepository) {
+        List<Setor> setores = setorRepository.listarSetoresComFuncionarios();
+
+        System.out.println("\n*** LISTA DE SETORES E FUNCIONÁRIOS ***");
+        for (Setor setor : setores) {
+            System.out.println("Setor: " + setor.getNome());
+            if (setor.getFuncionarios().isEmpty()) {
+                System.out.println("  Não há funcionários neste setor.");
+            } else {
+                System.out.println("  Funcionários: ");
+                for (Funcionario funcionario : setor.getFuncionarios()) {
+                    System.out.println("    - " + funcionario.getNome() +
+                            ", Documento: " + funcionario.getDocumento());
+                }
+            }
+        }
     }
 }
