@@ -1,4 +1,4 @@
-# Projeto-Intgrador-3-Semestre
+# Projeto-Integrador-3-Semestre
 
 
 Este repositório contém o código-fonte do nosso Gerenciador Operacional de estoque (GOE)
