@@ -3,18 +3,18 @@ package org.example;
 import jakarta.persistence.EntityManager;
 import org.example.Service.CurvaABC;
 import org.example.Util.Factory;
-import org.example.entities.Funcionario;
-import org.example.entities.Setor;
-import org.example.entities.Produtos;
-import org.example.entities.Usuario;
+import org.example.entities.*;
 import org.example.repository.ProdutosRepository;
 import org.example.repository.UsuarioRepository;
 import org.example.repository.SetorRepository;
 import org.example.repository.FuncionarioRepository;
+import org.example.repository.CategoriaProdutoRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
+import java.util.Set;
 
 public class Main {
 
@@ -77,7 +77,8 @@ public class Main {
             System.out.println("4 - Adicionar Estoque");
             System.out.println("5 - Mostrar Lucro do Dia");
             System.out.println("6 - Colaboradores");
-            System.out.println("7 - Sair");
+            System.out.println("7 - Criar Categoria de Produto");
+            System.out.println("8 - Sair");
             System.out.print("Escolha uma opção: ");
             int opcao = scanner.nextInt();
 
@@ -101,6 +102,17 @@ public class Main {
                     menuColaboradores(scanner, setorRepository, funcionarioRepository);
                     break;
                 case 7:
+                    try {
+                        em.getTransaction().begin(); // Inicia transação
+                        criarCategoriaProdutoEAssociar(em, scanner);
+                        em.getTransaction().commit(); // Commit após sucesso
+                    } catch (Exception e) {
+                        em.getTransaction().rollback(); // Rollback se erro
+                        System.out.println("Erro ao criar categoria: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    break;
+                case 8:
                     System.out.println("Saindo...");
                     em.close();
                     return;
@@ -187,13 +199,73 @@ public class Main {
 
         System.out.println("\n*** LISTA DE PRODUTOS ***");
         for (Produtos produto : produtosClassificados) {
-            System.out.println("ID: " + produto.getId() +
+            System.out.print("ID: " + produto.getId() +
                     ", Nome: " + produto.getNome() +
                     ", Estoque: " + produto.getEstoque() +
                     ", Quantidade Vendida: " + produto.getQuantidade_vendida() +
                     ", Categoria: " + produto.getCategoria() +
                     ", Valor Consumo: " + produto.getValorConsumo());
+
+            // Exibir categorias associadas
+            Set<CategoriaProduto> categorias = produto.getCategoriasProduto();
+            System.out.print(", Categorias: ");
+            if (categorias != null && !categorias.isEmpty()) {
+                categorias.forEach(c -> System.out.print(c.getNome() + " "));
+            } else {
+                System.out.print("Nenhuma");
+            }
+            System.out.println(); // Nova linha para cada produto
         }
+    }
+
+    public static void criarCategoriaProdutoEAssociar(EntityManager em, Scanner scanner) {
+        ProdutosRepository produtosRepo = new ProdutosRepository(em);
+        CategoriaProdutoRepository categoriaProdutoRepo = new CategoriaProdutoRepository(em);
+        categoriaProdutoRepo.setEm(em); // injeta manualmente o EntityManager
+
+        scanner.nextLine(); // limpar buffaer
+        System.out.println("*** CRIAÇÃO DE CATEGORIA ***");
+        System.out.print("Digite o nome da nova categoria: ");
+        String nomeCategoria = scanner.nextLine();
+
+        List<Produtos> todosProdutos = produtosRepo.buscarTodos();
+        if (todosProdutos.isEmpty()) {
+            System.out.println("Nenhum produto cadastrado. Cadastre produtos antes.");
+            return;
+        }
+
+        System.out.println("\nProdutos disponíveis:");
+        for (Produtos produto : todosProdutos) {
+            System.out.println("ID: " + produto.getId() + " - Nome: " + produto.getNome());
+        }
+
+        System.out.print("Informe os IDs dos produtos para associar à categoria (separados por vírgula): ");
+        String idsInput = scanner.nextLine();
+
+        List<Long> idsProdutos = new java.util.ArrayList<>();
+        for (String idStr : idsInput.split(",")) {
+            try {
+                idsProdutos.add(Long.parseLong(idStr.trim()));
+            } catch (NumberFormatException e) {
+                System.out.println("ID inválido ignorado: " + idStr.trim());
+            }
+        }
+
+        CategoriaProduto categoria = new CategoriaProduto();
+        categoria.setNome(nomeCategoria);
+
+        for (Long id : idsProdutos) {
+            Produtos produto = produtosRepo.buscarPorId(id);
+            if (produto != null) {
+                categoria.getProdutos().add(produto);
+                produto.getCategoriasProduto().add(categoria);
+            } else {
+                System.out.println("Produto com ID " + id + " não encontrado.");
+            }
+        }
+
+        categoriaProdutoRepo.salvar(categoria);
+        System.out.println("Categoria '" + nomeCategoria + "' criada e produtos associados com sucesso!");
     }
 
     private static void cadastrarSetor(Scanner scanner, SetorRepository setorRepository) {

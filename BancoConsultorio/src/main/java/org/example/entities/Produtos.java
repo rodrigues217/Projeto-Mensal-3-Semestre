@@ -2,12 +2,15 @@ package org.example.entities;
 
 import jakarta.persistence.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "produtos")
 public class Produtos {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "nome")
@@ -28,7 +31,15 @@ public class Produtos {
     @Column(name = "categoria")
     private String categoria;
 
-    // Getters e Setters corretos
+    @ManyToMany(cascade = CascadeType.PERSIST)
+    @JoinTable(
+            name = "produto_categoriaproduto",
+            joinColumns = @JoinColumn(name = "produtos_id"),
+            inverseJoinColumns = @JoinColumn(name = "categoria_produto_id")
+    )
+    private Set<CategoriaProduto> categoriasProduto = new HashSet<>();
+
+    // Getters e Setters
     public Long getId() {
         return id;
     }
@@ -68,6 +79,7 @@ public class Produtos {
     public void setQuantidade_vendida(int quantidade_vendida) {
         this.quantidade_vendida = quantidade_vendida;
     }
+
     public double getValorConsumo() {
         return valorConsumo;
     }
@@ -82,5 +94,13 @@ public class Produtos {
 
     public void setCategoria(String categoria) {
         this.categoria = categoria;
+    }
+
+    public Set<CategoriaProduto> getCategoriasProduto() {
+        return categoriasProduto;
+    }
+
+    public void setCategoriasProduto(Set<CategoriaProduto> categoriasProduto) {
+        this.categoriasProduto = categoriasProduto;
     }
 }
