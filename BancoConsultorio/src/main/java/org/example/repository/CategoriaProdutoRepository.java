@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.example.entities.CategoriaProduto;
+import org.example.entities.Produtos;
 
 import java.util.List;
 
@@ -42,6 +43,36 @@ public class CategoriaProdutoRepository {
         }
     }
 
+
+    @Transactional
+    public void associarProdutos(Long categoriaId, List<Produtos> produtos) {
+        CategoriaProduto categoria = em.find(CategoriaProduto.class, categoriaId);
+        if (categoria != null) {
+            for (Produtos produto : produtos) {
+                categoria.getProdutos().add(produto);
+                produto.getCategoriasProduto().add(categoria);
+                em.merge(produto); // Atualiza o produto também
+            }
+            em.merge(categoria); // Atualiza a categoria
+        }
+    }
+
+    @Transactional
+    public void desvincularProdutos(Long categoriaId, List<Produtos> produtos) {
+        CategoriaProduto categoria = em.find(CategoriaProduto.class, categoriaId);
+        if (categoria != null) {
+            for (Produtos produto : produtos) {
+                categoria.getProdutos().remove(produto);
+                produto.getCategoriasProduto().remove(categoria);
+                em.merge(produto); // Atualiza o produto também
+            }
+            em.merge(categoria); // Atualiza a categoria
+        }
+    }
+
+
     public void setEm(EntityManager em) {
+        this.em = em;
     }
 }
+
